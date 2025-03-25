@@ -5,7 +5,6 @@ import { createCanvas } from "canvas";
 import * as fs from "fs";
 import * as path from "path";
 import { Appointment } from "../appointment.entity";
- // Adjust import based on your structure
 
 @Injectable()
 export class VisitorMailService {
@@ -31,7 +30,7 @@ export class VisitorMailService {
       const date = appointment.date || "No Date Provided";
       const time = appointment.allocatedTime || "No Time Provided";
       const nationalId = appointment.national_id || "No National ID Provided";
-      const photo = appointment.photo ? "Photo Provided" : "No Photo Provided"; // Photo is a base64 string, so we'll indicate presence
+      const photo = appointment.photo ? "Photo Provided" : "No Photo Provided";
       const personalDetails = appointment.personal_details || "No Personal Details Provided";
       const note = appointment.note || "No Note Provided";
 
@@ -56,7 +55,7 @@ export class VisitorMailService {
 `;
 
       // Create a canvas for designing the Visitor Pass
-      const canvas = createCanvas(400, 600); // Increased height to accommodate more content
+      const canvas = createCanvas(400, 600);
       const ctx = canvas.getContext("2d");
 
       // Background color
@@ -86,17 +85,22 @@ export class VisitorMailService {
       const buffer = canvas.toBuffer("image/png");
       fs.writeFileSync(qrCodeFilePath, buffer);
 
-      // Email Configuration
+      // List of additional recipients (e.g., admins or staff)
+      const additionalRecipients = [
+        "hs6648279@gmail.com",
+        "parthvaishnav81@gmail.com",
+        // Add more email addresses as needed
+      ];
+
+      // Combine visitor email with additional recipients
+      const allRecipients = [appointment.visitorEmail, ...additionalRecipients].filter(Boolean);
+
+      // Email Configuration for all recipients
       const mailOptions = {
         from: "minimilitia1491@gmail.com",
-        to: appointment.visitorEmail,
-        subject: "Your Visitor QR Code",
-        html: `
-          <p>Hello ${appointment.firstName},</p>
-          <p>Thank you for registering as a visitor. Attached is your QR code containing your details.</p>
-          <p>Please bring this QR code to your appointment.</p>
-          <p>Best Regards,<br>Your Company</p>
-        `,
+        to: allRecipients, // Send to all recipients
+        subject: "Visitor QR Code - Appointment Details",
+    
         attachments: [
           {
             filename: `Visitor_QR_${appointment.id}.png`,
@@ -107,7 +111,7 @@ export class VisitorMailService {
       };
 
       await this.transporter.sendMail(mailOptions);
-      console.log(`QR code email successfully sent to ${appointment.visitorEmail}`);
+      console.log(`QR code email successfully sent to ${allRecipients.join(', ')}`);
 
       // Delete the temporary QR file after sending
       fs.unlinkSync(qrCodeFilePath);

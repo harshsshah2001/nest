@@ -5,7 +5,6 @@ import { Appointment } from './appointment.entity';
 import { MailService } from '../mail/mail.service';
 import { VisitorMailService } from './visitor-mail/visitor-mail.service';
 
-
 @Injectable()
 export class AppointmentService {
   constructor(
@@ -28,6 +27,7 @@ export class AppointmentService {
       let savedAppointment: Appointment;
 
       if (existingAppointment) {
+        // Update existing appointment (VisitorForm submission)
         savedAppointment = await this.appointmentRepo.save({
           ...existingAppointment,
           national_id: data.national_id || existingAppointment.national_id,
@@ -37,7 +37,14 @@ export class AppointmentService {
           note: data.note || existingAppointment.note,
         });
         console.log(`✅ Updated appointment for ${savedAppointment.visitorEmail}`);
+
+        // Log the appointment details before sending QR code email
+        console.log('Appointment details before QR code generation:', savedAppointment);
+
+        // Send QR code email only when updating (VisitorForm)
+        await this.visitorMailService.sendVisitorQRCode(savedAppointment);
       } else {
+        // Create new appointment (AppointmentForm submission)
         const appointment = this.appointmentRepo.create({
           firstName: data.firstName,
           lastName: data.lastName,
@@ -66,12 +73,6 @@ export class AppointmentService {
           console.log('⚠️ Email not sent: Missing required fields (visitorEmail, date, or allocatedTime)');
         }
       }
-
-      // Log the appointment details before sending QR code email
-      console.log('Appointment details before QR code generation:', savedAppointment);
-
-      // Send QR code email
-      await this.visitorMailService.sendVisitorQRCode(savedAppointment);
 
       return savedAppointment;
     } catch (error) {
