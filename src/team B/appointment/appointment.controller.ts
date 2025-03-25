@@ -1,4 +1,5 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AppointmentService } from './appointment.service';
 import { Appointment } from './appointment.entity';
 
@@ -7,7 +8,14 @@ export class AppointmentController {
   constructor(private readonly appointmentService: AppointmentService) {}
 
   @Post('create')
-  async create(@Body() data: Partial<Appointment>): Promise<Appointment> {
-    return this.appointmentService.createAppointment(data);
+  @UseInterceptors(FileInterceptor('photo'))
+  async createOrUpdate(
+    @Body() data: Partial<Appointment>,
+    @UploadedFile() photo: Express.Multer.File,
+  ): Promise<Appointment> {
+    return this.appointmentService.createOrUpdateAppointment({
+      ...data,
+      photo: photo ? photo.buffer.toString('base64') : data.photo, // Convert buffer to base64 string
+    });
   }
 }
