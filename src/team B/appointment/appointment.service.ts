@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Appointment } from './appointment.entity';
 import { MailService } from '../mail/mail.service';
+import { VisitorMailService } from './visitor-mail/visitor-mail.service';
+
 
 @Injectable()
 export class AppointmentService {
@@ -10,11 +12,11 @@ export class AppointmentService {
     @InjectRepository(Appointment)
     private readonly appointmentRepo: Repository<Appointment>,
     private readonly mailService: MailService,
+    private readonly visitorMailService: VisitorMailService,
   ) {}
 
   async createOrUpdateAppointment(data: Partial<Appointment>): Promise<Appointment> {
     try {
-      // Check if an appointment exists with visitorEmail, date, and allocatedTime
       const existingAppointment = await this.appointmentRepo.findOne({
         where: {
           visitorEmail: data.visitorEmail,
@@ -23,9 +25,10 @@ export class AppointmentService {
         },
       });
 
+      let savedAppointment: Appointment;
+
       if (existingAppointment) {
-        // Update existing appointment
-        const updatedAppointment = await this.appointmentRepo.save({
+        savedAppointment = await this.appointmentRepo.save({
           ...existingAppointment,
           national_id: data.national_id || existingAppointment.national_id,
           photo: data.photo || existingAppointment.photo,
@@ -33,10 +36,8 @@ export class AppointmentService {
           personal_details: data.personal_details || existingAppointment.personal_details,
           note: data.note || existingAppointment.note,
         });
-        console.log(`✅ Updated appointment for ${updatedAppointment.visitorEmail}`);
-        return updatedAppointment;
+        console.log(`✅ Updated appointment for ${savedAppointment.visitorEmail}`);
       } else {
-        // Create new appointment
         const appointment = this.appointmentRepo.create({
           firstName: data.firstName,
           lastName: data.lastName,
@@ -50,7 +51,7 @@ export class AppointmentService {
           note: data.note,
         });
 
-        const savedAppointment = await this.appointmentRepo.save(appointment);
+        savedAppointment = await this.appointmentRepo.save(appointment);
 
         if (savedAppointment.visitorEmail && savedAppointment.date && savedAppointment.allocatedTime) {
           const formLink = `http://localhost:3000/#/theme/colors/VisitorForm?email=${encodeURIComponent(savedAppointment.visitorEmail)}&time=${encodeURIComponent(savedAppointment.allocatedTime)}&date=${encodeURIComponent(savedAppointment.date)}&firstName=${encodeURIComponent(savedAppointment.firstName || '')}&lastName=${encodeURIComponent(savedAppointment.lastName || '')}`;
@@ -64,9 +65,15 @@ export class AppointmentService {
         } else {
           console.log('⚠️ Email not sent: Missing required fields (visitorEmail, date, or allocatedTime)');
         }
-
-        return savedAppointment;
       }
+
+      // Log the appointment details before sending QR code email
+      console.log('Appointment details before QR code generation:', savedAppointment);
+
+      // Send QR code email
+      await this.visitorMailService.sendVisitorQRCode(savedAppointment);
+
+      return savedAppointment;
     } catch (error) {
       console.error('❌ Error creating/updating appointment:', error);
       throw new InternalServerErrorException('Failed to create or update appointment.');
