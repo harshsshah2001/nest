@@ -22,7 +22,7 @@ export class MailService {
   }
 
   async sendRegistrationEmail(email: string, name: string, userId: number) {
-    const confirmationLink = `http://localhost:3001/event-details/${userId}`; // Unique link with user ID
+    const confirmationLink = `http://192.168.3.75:3001/event-details/${userId}`; // Unique link with user ID
     const mailOptions = {
       from: 'minimilitia1491@gmail.com',
       to: email,
