@@ -31,8 +31,7 @@ export class MailService {
         <h1>Welcome, ${name}!</h1>
         <p>Thank you for registering with us.</p>
         <p>Your account has been successfully created.</p>
-        <p>Please click the link below to view your event details:</p>
-        <a href="${confirmationLink}">https://Register_Event_Details.com</a>
+       
       `,
     };
 
